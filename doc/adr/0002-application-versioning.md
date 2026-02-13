@@ -17,4 +17,4 @@ We will use Architecture Decision Records, as described by Michael Nygard in thi
 
 ## Consequences
 
-See Michael Nygard's article, linked above.
+TBD.
