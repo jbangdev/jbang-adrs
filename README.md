@@ -6,7 +6,8 @@ ADR's for jbang and jbangorg related projects
 
 * https://github.com/adoble/adr-j
 * jbang run adr@adoble version
-* jbang run adr@adoble init
+* wget https://raw.githubusercontent.com/adoble/adr-j/refs/heads/main/doc/example_templates/madr.adoc
+* jbang run adr@adoble init -t madr.adoc
 * export EDITOR=code
 * jbang run adr@adoble new Application Versioning
 * jbang run adr@adoble generate toc

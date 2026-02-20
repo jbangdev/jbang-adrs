@@ -1,0 +1,1 @@
+jbang run adr@adoble generate toc
