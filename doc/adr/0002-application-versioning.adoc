@@ -1,0 +1,176 @@
+// Inspired by https://adr.github.io/madr/decisions/adr-template.html
+// Based on https://github.com/aeimer/asciidoc-templates/blob/main/template-adr.adoc
+// proposed ⚙️
+// rejected 🚫
+// accepted ✅
+// deprecated ☑️
+// superseded ⏭️
+// discarded 🗑️
+= ADR 1: Application Versioning
+:sectnums:
+:sectnumlevels: 2
+:toc: right
+
+[cols="1,3"]
+|===
+|*status*
+// `proposed` / `rejected` / `accepted` / `deprecated` / `discarded` / superseded by xref:page$0001-docs.adoc[ADR-0001]
+| Proposed
+
+|*date*
+// YYYY-MM-DD when the decision was last updated
+| 2026-02-20
+
+|*deciders*
+a|
+// list everyone involved in the decision
+* https://github.com/maxandersen[Max Andersen]
+* https://github.com/quintesse[Tako Schotanus]
+
+|*consulted*
+a|
+// list everyone whose opinions are sought (typically subject-matter experts); and with whom there is a two-way communication
+* _n/a_
+
+|*informed*
+a|
+// list everyone who is kept up-to-date on progress; and with whom there is a one-way communication
+* _n/a_
+|===
+
+== Context and problem statement [[context]]
+
+////
+Describe the context and problem statement, e.g., in free form using two to three sentences or in the form of an illustrative story.
+You may want to articulate the problem in form of a question and add links to collaboration boards or issue management systems.
+////
+
+JBang commands such as `run`, `build`, `info` operate on several different types of entities.
+
+* Local source files
+** jbang run HelloWorld.java
+* Remote source files
+** jbang run https://raw.githubusercontent.com/jbangdev/jbang-catalog/refs/heads/main/hello.java
+* Gists (Github)
+** jbang run https://gist.github.com/maxandersen/f43b4c52dfcfc42dcd59a04e49acf6ec
+* GAV coordinates (Maven artifacts)
+** jbang run org.example:myapp:1.0.0
+* Local JAR files
+** jbang run ./hello-fatjar.jar
+* Aliases defined in JBang catalogs
+** jbang run hello@jbangdev John
+
+JBang aliases serve as convenient shortcuts imported from catalogs. These aliases act as pointers to various executable entities, allowing you to run scripts or applications without remembering long URLs or file paths.
+
+A JBang alias can point to:
+
+Scripts:: Local files or remote URLs.
+
+GitHub Gists:: Easily shareable code snippets.
+
+Maven Artifacts:: Identified via GAV coordinates (groupId:artifactId:version).
+
+Local JARs:: Pre-compiled Java archives.
+
+Nested Aliases:: Other aliases already defined within JBang catalogs.
+
+A JBang Alias can also be called a JBang Application. And just like with any normal software application, users want to be able to use different versions of the same JBang Application. JBang however currently lacks a versioning mechanism for aliases.
+
+This document proposes a solution to add versioning support for JBang Applications. The proposed solution should allow users to specify the version of the application they want to install or run, while still maintaining backward compatibility with the current behavior of JBang.
+
+// This is an optional element. Feel free to remove.
+== Decision drivers [[decision-drivers]]
+
+In order for a user to select a specific version of a JBang Application the following commands must support application versioning.
+
+* The `jbang app install <alias@catalog>` command should support application versioning. The version information should be optional, and if not provided, the latest version of the application should be installed. Otherwise, the requested version of the application should be installed.
+
+* The `jbang run <alias@catalog>` command should support application versioning. The version information should be optional, and if not provided, the latest version of the application should be executed. Otherwise, the requested version of the application should be executed.
+
+== Considered options [[considered-options]]
+
+// Leave these options as they are!
+// The rendered output will have the section names with links in place.
+
+
+. Extend the alias syntax to allow users to specify the version of the application they want to install or run. For example, users could specify the version using the syntax `alias:version@catalog`, e.g., `hello:1.0.0@jbangdev`.
+
+. Add a `--version` option to the `jbang app install` and `jbang run` commands, which allows users to specify the version of the application they want to install or run.
+
+== Decision outcome [[decision-outcome]]
+
+Chosen option:: `alias:version@catalog`, because it very specifically associates the version information with the alias name. The other option defines a general version option and it is not always clear what it applies to.
+
+// This is an optional element. Feel free to remove.
+=== Consequences
+
+This section outlines the ripple effects—both the wins and the new responsibilities—resulting from this change.
+
+Positive: Reproducible Workflows::
+Users can now pin aliases to specific versions (e.g., jbang mytool:1.2.3@catalog), ensuring CI/CD pipelines and scripts don't break when a remote alias is updated.
+
+Positive: Slight Decrease in Disk Usage::
+Since JBang will no longer fetch the latest version of an application, this would lead to fewer cached JARs and scripts.
+
+Negative::  None that comes to mind.
+
+=== Confirmation
+
+////
+Describe how the implementation of/compliance with the ADR is confirmed. E.g., by a review or an ArchUnit test.
+Although we classify this element as optional, it is included in most ADRs.
+////
+
+Automated Integration Tests::
+
+* Verify that jbang alias:version@catalog correctly fetches and executes the specified release.
+
+* Confirm that jbang alias (without a version) continues to default to the latest or main branch as per current behavior.
+
+* Ensure that invalid version strings return a clear, actionable error message rather than a stack trace.
+
+* A hello application that support versioning and is used in the tests should be added to the jbangdev catalog. This application should also support a `--version` option that prints the version of the application. For example, `jbang run hello:1.0.0@jbangdev --version` should print `1.0.0`.
+
+* The same hello application should be installed as an application using the `jbang app install` command. For example, `jbang app install hello:1.0.0@jbangdev` should install the application and `hello --version` should execute the installed application and print `1.0.0`.
+
+Cache Validation::
+
+Manually inspect the JBang cache directory to confirm that different versions of the same alias are stored in unique, non-conflicting paths.
+
+Offline Mode Test::
+
+Verify that if a specific version is already cached, JBang can execute it in --offline mode without attempting to hit the remote repository.
+
+Performance Benchmark::
+
+Measure the delta in resolution time between a standard alias and a versioned alias to ensure no significant regressions in startup speed.
+
+=== Links
+
+* https://github.com/jbangdev/jbang/issues/1979
+
+[appendix]
+== Implementation Notes
+
+`default-version`::
+The default version of an alias can be defined in the catalog as a new property. For example, the `camel` alias in the example catalog file has a default version of `4.18.0`. This means that if a user runs `jbang run camel@catalog`, JBang will use version `4.18.0` of the `camel` alias, and the `${version}` placeholder will be replaced with `4.18.0` in the alias definition.
+
+`${version}` placeholder::
+The `${version}` placeholder can be used in any of the string value fields of the alias definition. When a user specifies a version for the alias, JBang will replace the `${version}` placeholder with the specified version. For example, if a user runs `jbang run camel:4.17.0@catalog`, JBang will replace `${version}` with `4.17.0` in the `properties` field of the `camel` alias. Placeholder substitution is not limited to the `properties` field, it can be used in any string value of the alias definition, such as `script-ref` or other fields.
+
+.Example jbang-catalog.json file
+[source,json]
+----
+{
+  "aliases": {
+    "camel": {
+      "default-version": "4.18.0",
+      "script-ref": "dsl/camel-jbang/camel-jbang-main/dist/CamelJBang.java",
+      "properties": {
+        "camel.jbang.version": "${version}",
+        "camel-kamelets.version": "${version}"
+      }
+    }
+  }
+}
+----
